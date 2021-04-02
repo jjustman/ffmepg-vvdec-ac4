@@ -183,6 +183,7 @@ extern const AVCodec ff_jv_decoder;
 extern const AVCodec ff_kgv1_decoder;
 extern const AVCodec ff_kmvc_decoder;
 extern const AVCodec ff_lagarith_decoder;
+extern const AVCodec ff_libvvdec_decoder;
 extern const AVCodec ff_ljpeg_encoder;
 extern const AVCodec ff_loco_decoder;
 extern const AVCodec ff_lscr_decoder;
