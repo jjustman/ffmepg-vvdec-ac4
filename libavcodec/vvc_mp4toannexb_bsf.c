@@ -60,14 +60,11 @@ static int vvc_extradata_to_annexb(AVBSFContext *ctx)
     bytestream2_skip(&gb, 1);
     num_arrays  = bytestream2_get_byte(&gb);
 
-    av_log(ctx, AV_LOG_INFO, "annexb: %d, %d, %d\n", ptl_present, num_arrays, ctx->par_in->extradata_size);
 
 
     for (i = 0; i < num_arrays; i++) {
         int type = bytestream2_get_byte(&gb) & 0x3f;
         int cnt  = bytestream2_get_be16(&gb);
-
-        av_log(ctx, AV_LOG_INFO, "TYPE: %d, cnt %d\n", type, cnt);
 
         if (!(type == VVC_VPS_NUT || type == VVC_SPS_NUT || type == VVC_PPS_NUT ||
               type == VVC_PREFIX_SEI_NUT || type == VVC_SUFFIX_SEI_NUT)) {
