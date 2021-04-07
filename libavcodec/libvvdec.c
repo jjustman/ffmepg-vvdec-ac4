@@ -389,6 +389,7 @@ AVCodec ff_libvvdec_decoder = {
   .decode          = ff_vvdec_decode_frame,
   .close           = ff_vvdec_decode_close,
   .capabilities    = AV_CODEC_CAP_DELAY | AV_CODEC_CAP_OTHER_THREADS,
+  .bsfs            = "vvc_mp4toannexb",
   .caps_internal   = (1 << 7),
   .pix_fmts        = pix_fmts_vvc,
   .priv_class      = &libvvdec_class,
