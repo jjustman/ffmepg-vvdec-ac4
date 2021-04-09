@@ -1,7 +1,7 @@
 /**
-  \ingroup HHIVVCFFmpegPlugin
-  \file    HHIVVCDecContext.cpp
-  \brief   This file contains the implementation of the hhi vvc VVdeC library.
+  \ingroup avcodec
+  \file    libvvdec.cpp
+  \brief   This file contains the implementation of the hhi vvc VVdeC plugin.
   \author  christian.lehmann@hhi.fraunhofer.de
   \date    March/20/2021
 
@@ -13,19 +13,14 @@
   in the agreement/contract under which the software has been supplied.
   The software distributed under this license is distributed on an "AS IS" basis,
   WITHOUT WARRANTY OF ANY KIND, either expressed or implied.
-
 */
 
 #include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
-#include "libavcodec/avcodec.h"
+#include "avcodec.h"
+#include "internal.h"
 
 #include "libavutil/avutil.h"
 #include "libavutil/pixdesc.h"
@@ -35,16 +30,7 @@ extern "C" {
 #include "libavutil/frame.h"
 #include "libavutil/log.h"
 
-
-
 #include "vvdec/vvdec.h"
-
-#if defined( __linux__ ) || defined( __APPLE__ )
-# include <unistd.h>
-#elif defined( _WIN32 )
-// picks up GetSystemInfo()
-# include <windows.h>
-#endif
 
 #define VVDEC_LOG_ERROR( ...) \
     { \
@@ -99,14 +85,30 @@ static av_cold void ff_vvdec_printParameterInfo( AVCodecContext *avctx, vvdecPar
 
 static av_cold int ff_vvdec_set_pix_fmt(AVCodecContext *avctx, vvdecFrame* frame )
 {
-//    static const enum AVColorRange color_ranges[] = {
-//        AVCOL_RANGE_MPEG, AVCOL_RANGE_JPEG
-//    };
-    //avctx->color_range = color_ranges[img->range];
-    //avctx->color_primaries = img->cp;
+    if( NULL != frame->picAttributes && NULL != frame->picAttributes->vui &&
+        frame->picAttributes->vui->colourDescriptionPresentFlag )
+    {
+      avctx->color_trc       = frame->picAttributes->vui->transferCharacteristics;
+      avctx->color_primaries = frame->picAttributes->vui->colourPrimaries;
+      avctx->colorspace      = frame->picAttributes->vui->matrixCoefficients;
+    }
+    else
+    {
+      avctx->color_primaries = AVCOL_PRI_UNSPECIFIED;
+      avctx->color_trc       = AVCOL_TRC_UNSPECIFIED;
+      avctx->colorspace      = AVCOL_SPC_UNSPECIFIED;
+    }
 
-    //avctx->colorspace  = AVCOL_SPC_BT709;
-    //avctx->color_trc   = AVCOL_TRC_BT709;
+    if( NULL != frame->picAttributes && NULL != frame->picAttributes->vui &&
+        frame->picAttributes->vui->videoSignalTypePresentFlag)
+    {
+      avctx->color_range =
+          frame->picAttributes->vui->videoFullRangeFlag ? AVCOL_RANGE_JPEG : AVCOL_RANGE_MPEG;
+    }
+    else
+    {
+      avctx->color_range = AVCOL_RANGE_MPEG;
+    }
 
     switch ( frame->colorFormat )
     {
@@ -162,11 +164,12 @@ static av_cold int ff_vvdec_set_pix_fmt(AVCodecContext *avctx, vvdecFrame* frame
  */
 static av_cold int ff_vvdec_decode_init(AVCodecContext *avctx)
 {
+  vvdecParams params;
+
   VVdeCContext *s = (VVdeCContext*)avctx->priv_data;
 
   VVDEC_LOG_DBG("ff_vvdec_decode_init::init() threads %d\n", avctx->thread_count );
 
-  vvdecParams params;
   vvdec_params_default( &params );
   params.logLevel = VVDEC_DETAILS;
 
@@ -184,7 +187,7 @@ static av_cold int ff_vvdec_decode_init(AVCodecContext *avctx)
   }
   else
   {
-    params.threads = -1; // get max cpu´s
+    params.threads = -1; // get max cpus
   }
 
   ff_vvdec_printParameterInfo( avctx, &params );
@@ -269,6 +272,9 @@ static av_cold int ff_vvdec_decode_frame( AVCodecContext *avctx, void *data, int
     {
       if( NULL != frame )
       {
+        const uint8_t * src_data[4]      = { frame->planes[0].ptr, frame->planes[1].ptr, frame->planes[2].ptr, NULL };
+        const int       src_linesizes[4] = { (int)frame->planes[0].stride, (int)frame->planes[1].stride, (int)frame->planes[2].stride, 0 };
+
         #if 1
         if( frame->picAttributes )
         {
@@ -333,14 +339,8 @@ static av_cold int ff_vvdec_decode_frame( AVCodecContext *avctx, void *data, int
           return iRet;
         }
 
-#if LIBAVCODEC_VERSION_MAJOR >= 58
-
-        const uint8_t * src_data[4]      = { frame->planes[0].ptr, frame->planes[1].ptr, frame->planes[2].ptr, NULL };
-        const int       src_linesizes[4] = { (int)frame->planes[0].stride, (int)frame->planes[1].stride, (int)frame->planes[2].stride, 0 };
-
         av_image_copy(pcAVFrame->data, pcAVFrame->linesize, src_data,
                       src_linesizes, avctx->pix_fmt, frame->width, frame->height );
-#endif
 
         if( 0 != vvdec_frame_unref( s->vvdecDec, frame ) )
         {
@@ -390,14 +390,10 @@ AVCodec ff_libvvdec_decoder = {
   .close           = ff_vvdec_decode_close,
   .capabilities    = AV_CODEC_CAP_DELAY | AV_CODEC_CAP_OTHER_THREADS,
   .bsfs            = "vvc_mp4toannexb",
-  .caps_internal   = (1 << 7),
+  .caps_internal   = FF_CODEC_CAP_AUTO_THREADS,
   .pix_fmts        = pix_fmts_vvc,
   .priv_class      = &libvvdec_class,
   .wrapper_name    = "libvvdec",
 
 };
 
-
-#ifdef __cplusplus
-};
-#endif
