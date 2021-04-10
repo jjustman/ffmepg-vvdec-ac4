@@ -228,6 +228,7 @@ External library support:
   --enable-libcodec2       enable codec2 en/decoding using libcodec2 [no]
   --enable-libdav1d        enable AV1 decoding via libdav1d [no]
   --enable-libvvdec        enable VVC decoding via vvdec [no]
+  --enable-libopenvvc      enable decoding of vvc video files via libopenVVC [no]
   --enable-libdavs2        enable AVS2 decoding via libdavs2 [no]
   --enable-libdc1394       enable IIDC-1394 grabbing using libdc1394
                            and libraw1394 [no]
@@ -1844,6 +1845,7 @@ EXTERNAL_LIBRARY_LIST="
     libopenh264
     libopenjpeg
     libopenmpt
+    libopenvvc
     libopenvino
     libopus
     libplacebo
@@ -3345,6 +3347,8 @@ libopencore_amrwb_decoder_deps="libopencore_amrwb"
 libopenh264_decoder_deps="libopenh264"
 libopenh264_decoder_select="h264_mp4toannexb_bsf"
 libopenh264_encoder_deps="libopenh264"
+libopenvvc_decoder_deps="libopenvvc"
+libopenvvc_decoder_select="vvc_parser"
 libopenjpeg_decoder_deps="libopenjpeg"
 libopenjpeg_encoder_deps="libopenjpeg"
 libopenmpt_demuxer_deps="libopenmpt"
@@ -6575,6 +6579,7 @@ enabled libopencv         && { check_headers opencv2/core/core_c.h &&
                                  require libopencv opencv2/core/core_c.h cvCreateImageHeader -lopencv_core -lopencv_imgproc; } ||
                                require_pkg_config libopencv opencv opencv/cxcore.h cvCreateImageHeader; }
 enabled libopenh264       && require_pkg_config libopenh264 openh264 wels/codec_api.h WelsGetCodecVersion
+enabled libopenvvc        && require_pkg_config libopenvvc "libopenvvc >= 0.0" ovdec.h ovdec_init
 enabled libopenjpeg       && { check_pkg_config libopenjpeg "libopenjp2 >= 2.1.0" openjpeg.h opj_version ||
                                { require_pkg_config libopenjpeg "libopenjp2 >= 2.1.0" openjpeg.h opj_version -DOPJ_STATIC && add_cppflags -DOPJ_STATIC; } }
 enabled libopenmpt        && require_pkg_config libopenmpt "libopenmpt >= 0.2.6557" libopenmpt/libopenmpt.h openmpt_module_create -lstdc++ && append libopenmpt_extralibs "-lstdc++"
