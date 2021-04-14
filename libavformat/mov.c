@@ -1949,7 +1949,6 @@ static int mov_read_glbl(MOVContext *c, AVIOContext *pb, MOVAtom atom)
         return 0;
     }
     ret = ff_get_extradata(c->fc, st->codecpar, pb, atom.size);
-	av_log(c->fc, AV_LOG_ERROR, "mov_read_glbl %d\n", atom.size);
 
     if (ret < 0)
         return ret;
