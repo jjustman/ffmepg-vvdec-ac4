@@ -183,7 +183,7 @@ static av_cold int ff_vvdec_decode_init(AVCodecContext *avctx)
   // threading
   if( avctx->thread_count > 0 )
   {
-    params.threads = avctx->thread_count * 4;  // number of worker threads (should not exceed the number of physical cpu's)
+    params.threads = avctx->thread_count;  // number of worker threads (should not exceed the number of physical cpu's)
   }
   else
   {
