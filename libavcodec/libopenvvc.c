@@ -32,6 +32,7 @@
 
 #include "profiles.h"
 #include "avcodec.h"
+#include "vvc.h"
 #include "h2645_parse.h"
 
 struct OVDecContext{
@@ -105,9 +106,7 @@ static int ff_vvc_decode_extradata(const uint8_t *data, int size, OVVCDec *dec,
 
     *is_nalff = 1;
 
-    //todo - parse all interesting fields rather than skip
 
-    bytestream2_skip(&gb, 3); //cfg+framerate
 
     b = bytestream2_get_byte(&gb);
 
@@ -118,33 +117,59 @@ static int ff_vvc_decode_extradata(const uint8_t *data, int size, OVVCDec *dec,
     has_ptl = b & 0x1;
 
     if (has_ptl) {
-        int ptl_sublayer_present_mask = 0;
-        int num_constraint = bytestream2_get_byte(&gb);
+        int num_bytes_constraint_info;
+        int general_profile_idc;
+        int general_tier_flag;
+        int ptl_num_sub_profiles;
+        int temp3, temp4;
+        int temp2 = bytestream2_get_be16(&gb);
+        int ols_idx  = (temp2 >> 7) & 0x1ff;
+        int num_sublayers  = (temp2 >> 4) & 0x7;
+        int constant_frame_rate = (temp2 >> 2) & 0x3;
+        int chroma_format_idc = temp2 & 0x3;
+        int bit_depth_minus8 = (bytestream2_get_byte(&gb) >> 5) & 0x7;
+        av_log(logctx, AV_LOG_DEBUG,
+            "bit_depth_minus8 %d chroma_format_idc %d\n", bit_depth_minus8, chroma_format_idc);
+        // VvcPTLRecord(num_sublayers) native_ptl
+        temp3 = bytestream2_get_byte(&gb);
+        num_bytes_constraint_info = (temp3) & 0x3f;
+        temp4 = bytestream2_get_byte(&gb);
+        general_profile_idc = (temp4 >> 1) & 0x7f;
+        general_tier_flag = (temp4) & 1;
+        av_log(logctx, AV_LOG_DEBUG,
+            "general_profile_idc %d, num_sublayers %d num_bytes_constraint_info %d\n", general_profile_idc, num_sublayers, num_bytes_constraint_info);
+        for (i = 0; i < num_bytes_constraint_info; i++)
+            // unsigned int(1) ptl_frame_only_constraint_flag;
+            // unsigned int(1) ptl_multi_layer_enabled_flag;
+            // unsigned int(8*num_bytes_constraint_info - 2) general_constraint_info;
+            bytestream2_get_byte(&gb);
+        /*for (i=num_sublayers - 2; i >= 0; i--)
+            unsigned int(1) ptl_sublayer_level_present_flag[i];
+        for (j=num_sublayers; j<=8 && num_sublayers > 1; j++)
+            bit(1) ptl_reserved_zero_bit = 0;
+        */
+        bytestream2_get_byte(&gb);
+        /*for (i=num_sublayers-2; i >= 0; i--)
+            if (ptl_sublayer_level_present_flag[i])
+                unsigned int(8) sublayer_level_idc[i]; */
+        ptl_num_sub_profiles = bytestream2_get_byte(&gb);
 
-        bytestream2_skip(&gb, 2); //profile&level
-
-        if (num_constraint) {
-            bytestream2_skip(&gb, num_constraint);
-        } else {
-            bytestream2_skip(&gb, 1);
+        for (j=0; j < ptl_num_sub_profiles; j++) {
+            // unsigned int(32) general_sub_profile_idc[j];
+            bytestream2_get_be16(&gb);
+            bytestream2_get_be16(&gb);
         }
 
-        if (num_sublayers > 1) {
-            ptl_sublayer_present_mask = bytestream2_get_byte(&gb);
-        }
-
-        for (j = 0; j < 8; j++) {
-            if (ptl_sublayer_present_mask & (1 << (7 - j))) {
-                bytestream2_skip(&gb, 1);
-            }
-        }
-
-        num_constraint = bytestream2_get_byte(&gb);
-        bytestream2_skip(&gb, 4 * num_constraint + 2); //subprofile and target ols idx
+        int max_picture_width = bytestream2_get_be16(&gb); // unsigned_int(16) max_picture_width;
+        int max_picture_height = bytestream2_get_be16(&gb); // unsigned_int(16) max_picture_height;
+        int avg_frame_rate = bytestream2_get_be16(&gb); // unsigned int(16) avg_frame_rate; }
+        av_log(logctx, AV_LOG_DEBUG,
+            "max_picture_width %d, max_picture_height %d, avg_frame_rate %d\n", max_picture_width, max_picture_height, avg_frame_rate);
     }
-    //chroma & depth
-    bytestream2_get_byte(&gb);
-    num_arrays = bytestream2_get_byte(&gb);
+
+    num_arrays  = bytestream2_get_byte(&gb);
+
+
 
     /* nal units in the hvcC always have length coded with 2 bytes,
      * so put a fake nal_length_size = 2 while parsing them */
@@ -152,13 +177,24 @@ static int ff_vvc_decode_extradata(const uint8_t *data, int size, OVVCDec *dec,
 
     /* Decode nal units from hvcC. */
     for (i = 0; i < num_arrays; i++) {
-        int type = bytestream2_get_byte(&gb) & 0x3f;
-        int cnt  = bytestream2_get_be16(&gb);
+        int cnt;
+        int type = bytestream2_get_byte(&gb) & 0x1f;
+
+        if (type != VVC_OPI_NUT || type != VVC_DCI_NUT)
+            cnt  = bytestream2_get_be16(&gb);
+        else
+            cnt = 1;
+
+        av_log(logctx, AV_LOG_DEBUG,
+            "nalu_type %d cnt %d\n", type, cnt);
 
         for (j = 0; j < cnt; j++) {
             // +2 for the nal size field
 
             int nalsize = bytestream2_peek_be16(&gb) + 2;
+            av_log(logctx, AV_LOG_DEBUG,
+               "nalsize %d \n", nalsize);
+
 
             OVPictureUnit ovpu= {0};
 
@@ -173,6 +209,14 @@ static int ff_vvc_decode_extradata(const uint8_t *data, int size, OVVCDec *dec,
             OVNALUnit *ovnalu = &ovpu.nalus[0];
             ovnalu->rbsp_data = gb.buffer;
             ovnalu->rbsp_size = nalsize;
+            {int k; uint8_t *p_data = gb.buffer;
+                for (k=0; k<nalsize; k++)
+                av_log(logctx, AV_LOG_DEBUG,
+                    "%02x ", p_data[k]);
+            }
+
+            av_log(logctx, AV_LOG_DEBUG,
+                "\n");
 
             ret = ovdec_submit_picture_unit(dec, &ovpu);
 
@@ -311,7 +355,7 @@ static int libovvc_decode_init(AVCodecContext *c) {
         }
     }
 
-        #if 1
+        #if 0
         c->pix_fmt = AV_PIX_FMT_YUV420P10;
         c->width   = 3840;
         c->height  = 2160;
