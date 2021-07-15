@@ -216,6 +216,7 @@ static int vvc_mp4toannexb_filter(AVBSFContext *ctx, AVPacket *out)
             ret = AVERROR_INVALIDDATA;
             goto fail;
         }
+
         for (i = 0; i < s->length_size; i++)
             nalu_size = (nalu_size << 8) | bytestream2_get_byte(&gb);
 
@@ -224,7 +225,10 @@ static int vvc_mp4toannexb_filter(AVBSFContext *ctx, AVPacket *out)
             goto fail;
         }
 
-        nalu_type = (bytestream2_peek_byte(&gb) >> 1) & 0x3f;
+        nalu_type = (bytestream2_peek_be16(&gb) >> 3) & 0x1f;
+
+        av_log(ctx, AV_LOG_DEBUG,
+            "nalu_type %d nalu_size %d\n", nalu_type, nalu_size);
 
         /* prepend extradata to IRAP frames */
         is_irap       = nalu_type >= 16 && nalu_type <= 23;
