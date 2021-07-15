@@ -51,20 +51,75 @@ static int vvc_extradata_to_annexb(AVBSFContext *ctx)
     size_t   new_extradata_size = 0;
 
     bytestream2_init(&gb, ctx->par_in->extradata, ctx->par_in->extradata_size);
-    bytestream2_skip(&gb, 3);
     temp = bytestream2_get_byte(&gb);
     length_size = (( temp & 6) >> 1) + 1;
     ptl_present = temp & 1;
-    if (ptl_present)
-       bytestream2_skip(&gb, 7);
-    bytestream2_skip(&gb, 1);
+    if (ptl_present) {
+		int num_bytes_constraint_info;
+		int general_profile_idc;
+		int general_tier_flag;
+		int ptl_num_sub_profiles;
+		int temp3, temp4;
+		int temp2 = bytestream2_get_be16(&gb);
+        int ols_idx  = (temp2 >> 7) & 0x1ff;
+        int num_sublayers  = (temp2 >> 4) & 0x7;
+        int constant_frame_rate = (temp2 >> 2) & 0x3;
+        int chroma_format_idc = temp2 & 0x3;
+        int bit_depth_minus8 = (bytestream2_get_byte(&gb) >> 5) & 0x7;
+        av_log(ctx, AV_LOG_DEBUG,
+            "bit_depth_minus8 %d chroma_format_idc %d\n", bit_depth_minus8, chroma_format_idc);
+        // VvcPTLRecord(num_sublayers) native_ptl
+        temp3 = bytestream2_get_byte(&gb);
+        num_bytes_constraint_info = (temp3) & 0x3f;
+        temp4 = bytestream2_get_byte(&gb);
+        general_profile_idc = (temp4 >> 1) & 0x7f;
+        general_tier_flag = (temp4) & 1;
+        av_log(ctx, AV_LOG_DEBUG,
+            "general_profile_idc %d, num_sublayers %d num_bytes_constraint_info %d\n", general_profile_idc, num_sublayers, num_bytes_constraint_info);
+        for (i = 0; i < num_bytes_constraint_info; i++)
+            // unsigned int(1) ptl_frame_only_constraint_flag;
+            // unsigned int(1) ptl_multi_layer_enabled_flag;
+            // unsigned int(8*num_bytes_constraint_info - 2) general_constraint_info;
+            bytestream2_get_byte(&gb);
+        /*for (i=num_sublayers - 2; i >= 0; i--)
+            unsigned int(1) ptl_sublayer_level_present_flag[i];
+        for (j=num_sublayers; j<=8 && num_sublayers > 1; j++)
+            bit(1) ptl_reserved_zero_bit = 0;
+        */
+        bytestream2_get_byte(&gb);
+        /*for (i=num_sublayers-2; i >= 0; i--)
+            if (ptl_sublayer_level_present_flag[i])
+                unsigned int(8) sublayer_level_idc[i]; */
+        ptl_num_sub_profiles = bytestream2_get_byte(&gb); // unsigned int(8) sublayer_level_idc;
+
+        for (j=0; j < ptl_num_sub_profiles; j++) {
+            // unsigned int(32) general_sub_profile_idc[j];
+            bytestream2_get_be16(&gb);
+            bytestream2_get_be16(&gb);
+        }
+
+        int max_picture_width = bytestream2_get_be16(&gb); // unsigned_int(16) max_picture_width;
+        int max_picture_height = bytestream2_get_be16(&gb); // unsigned_int(16) max_picture_height;
+        int avg_frame_rate = bytestream2_get_be16(&gb); // unsigned int(16) avg_frame_rate;	}
+        av_log(ctx, AV_LOG_DEBUG,
+            "max_picture_width %d, max_picture_height %d, avg_frame_rate %d\n", max_picture_width, max_picture_height, avg_frame_rate);
+    }
+
     num_arrays  = bytestream2_get_byte(&gb);
 
 
 
     for (i = 0; i < num_arrays; i++) {
-        int type = bytestream2_get_byte(&gb) & 0x3f;
-        int cnt  = bytestream2_get_be16(&gb);
+        int cnt;
+        int type = bytestream2_get_byte(&gb) & 0x1f;
+
+        if (type != VVC_OPI_NUT || type != VVC_DCI_NUT)
+            cnt  = bytestream2_get_be16(&gb);
+        else
+            cnt = 1;
+
+        av_log(ctx, AV_LOG_DEBUG,
+            "nalu_type %d cnt %d\n", type, cnt);
 
         if (!(type == VVC_VPS_NUT || type == VVC_SPS_NUT || type == VVC_PPS_NUT ||
               type == VVC_PREFIX_SEI_NUT || type == VVC_SUFFIX_SEI_NUT)) {
@@ -89,6 +144,11 @@ static int vvc_extradata_to_annexb(AVBSFContext *ctx)
             bytestream2_get_buffer(&gb, new_extradata + new_extradata_size + 4, nalu_len);
             new_extradata_size += 4 + nalu_len;
             memset(new_extradata + new_extradata_size, 0, AV_INPUT_BUFFER_PADDING_SIZE);
+            {int k; uint8_t *p_data = new_extradata;
+                for (k=0; k < nalu_len + new_extradata_size + 4; k++)
+                av_log(ctx, AV_LOG_DEBUG,
+                    "%02x ", p_data[k]);
+            }
         }
     }
 
