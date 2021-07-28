@@ -800,7 +800,7 @@ static int vvcc_write(AVIOContext *pb, VVCDecoderConfigurationRecord *vvcc)
 
     /* unsigned int (7) general_profile_idc
        unsigned int (1) general_tier_flag */
-    avio_w8(pb, vvcc->general_profile_idc | vvcc->general_tier_flag);
+    avio_w8(pb, vvcc->general_profile_idc << 1 | vvcc->general_tier_flag);
 
     /* unsigned int (8) general_level_idc */
     avio_w8(pb, vvcc->general_level_idc);
