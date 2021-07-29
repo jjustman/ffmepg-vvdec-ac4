@@ -197,13 +197,18 @@ static int set_parser_ctx(AVCodecParserContext *ctx, AVCodecContext *avctx,
     const H266RawSPS *sps = pu->sps;
     const H266RawPPS *pps = pu->pps;
     const H266RawPH  *ph  = pu->ph;
+    const H266RawNALUnitHeader *nal = &pu->slice->header.nal_unit_header;
 
     /* set some sane default values */
     ctx->pict_type         = AV_PICTURE_TYPE_I;
     ctx->key_frame         = 0;
     ctx->picture_structure = AV_PICTURE_STRUCTURE_FRAME;
 
-    ctx->key_frame    = ph->ph_gdr_or_irap_pic_flag;
+    ctx->key_frame    = nal->nal_unit_type == VVC_IDR_W_RADL ||
+                        nal->nal_unit_type == VVC_IDR_N_LP   ||
+                        nal->nal_unit_type == VVC_CRA_NUT    ||
+                        nal->nal_unit_type == VVC_GDR_NUT;
+
     ctx->coded_width  = pps->pps_pic_width_in_luma_samples;
     ctx->coded_height = pps->pps_pic_height_in_luma_samples;
     ctx->width        = pps->pps_pic_width_in_luma_samples  -
