@@ -140,9 +140,9 @@ static void vvcc_update_ptl(VVCDecoderConfigurationRecord *vvcc,
       *vvcc->general_constraint_info = *vvcc->general_constraint_info << 8  | ptl->gci_num_reserved_bits;
       *vvcc->general_constraint_info = *vvcc->general_constraint_info << (int)(8*ceil(ptl->gci_num_reserved_bits / 8.));
     } else {
-      vvcc->num_bytes_constraint_info = 12;
+      vvcc->num_bytes_constraint_info = 1;
       vvcc->general_constraint_info = (uint8_t *) malloc(vvcc->num_bytes_constraint_info*sizeof(uint8_t));
-      *vvcc->general_constraint_info = 0x000000000000000000000000;
+      *vvcc->general_constraint_info = 0x00;
 
     }
 
