@@ -1350,7 +1350,7 @@ static int mov_write_vvcc_tag(AVIOContext *pb, MOVTrack *track)
     avio_wb32(pb, 0);
     ffio_wfourcc_full_box(pb, "vvcC");
     //avio_wb32(pb, 0);
-    if (track->tag == MKTAG('v','v','c','1'))
+    if (track->tag == MKTAG('v','v','i','1'))
         ff_isom_write_vvcc(pb, track->vos_data, track->vos_len, 1);
     else
         ff_isom_write_vvcc(pb, track->vos_data, track->vos_len, 0);
@@ -5754,6 +5754,7 @@ int ff_mov_write_packet(AVFormatContext *s, AVPacket *pkt)
     if ((par->codec_id == AV_CODEC_ID_DNXHD ||
          par->codec_id == AV_CODEC_ID_H264 ||
          par->codec_id == AV_CODEC_ID_HEVC ||
+         par->codec_id == AV_CODEC_ID_VVC ||
          par->codec_id == AV_CODEC_ID_TRUEHD ||
          par->codec_id == AV_CODEC_ID_AC3) && !trk->vos_len &&
          !TAG_IS_AVCI(trk->tag)) {
