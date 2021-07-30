@@ -227,9 +227,6 @@ static int vvc_mp4toannexb_filter(AVBSFContext *ctx, AVPacket *out)
 
         nalu_type = (bytestream2_peek_be16(&gb) >> 3) & 0x1f;
 
-        av_log(ctx, AV_LOG_DEBUG,
-            "nalu_type %d nalu_size %d\n", nalu_type, nalu_size);
-
         /* prepend extradata to IRAP frames */
         is_irap       = nalu_type >= 16 && nalu_type <= 23;
         add_extradata = is_irap && !got_irap;
