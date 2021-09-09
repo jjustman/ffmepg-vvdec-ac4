@@ -2001,20 +2001,24 @@ static int FUNC(pps)(CodedBitstreamContext *ctx, RWContext *rw,
         if (!current->pps_deblocking_filter_disabled_flag) {
             se(pps_luma_beta_offset_div2, -12, 12);
             se(pps_luma_tc_offset_div2, -12, 12);
+            if (current->pps_chroma_tool_offsets_present_flag) {
+                se(pps_cb_beta_offset_div2, -12, 12);
+                se(pps_cb_tc_offset_div2, -12, 12);
+                se(pps_cr_beta_offset_div2, -12, 12);
+                se(pps_cr_tc_offset_div2, -12, 12);
+            } else {
+                infer(pps_cb_beta_offset_div2, current->pps_luma_beta_offset_div2);
+                infer(pps_cb_tc_offset_div2, current->pps_luma_tc_offset_div2);
+                infer(pps_cr_beta_offset_div2, current->pps_luma_beta_offset_div2);
+                infer(pps_cr_tc_offset_div2, current->pps_luma_tc_offset_div2);
+            }
         } else {
             infer(pps_luma_beta_offset_div2, 0);
             infer(pps_luma_tc_offset_div2, 0);
-        }
-        if (current->pps_chroma_tool_offsets_present_flag) {
-            se(pps_cb_beta_offset_div2, -12, 12);
-            se(pps_cb_tc_offset_div2, -12, 12);
-            se(pps_cr_beta_offset_div2, -12, 12);
-            se(pps_cr_tc_offset_div2, -12, 12);
-        } else {
             infer(pps_cb_beta_offset_div2, 0);
             infer(pps_cb_tc_offset_div2, 0);
-            infer(pps_cr_beta_offset_div2, current->pps_luma_beta_offset_div2);
-            infer(pps_cr_tc_offset_div2, current->pps_luma_tc_offset_div2);
+            infer(pps_cr_beta_offset_div2, 0);
+            infer(pps_cr_tc_offset_div2, 0);
         }
     } else {
         infer(pps_deblocking_filter_override_enabled_flag, 0);
