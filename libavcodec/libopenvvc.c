@@ -442,8 +442,37 @@ static int libovvc_decode_free(AVCodecContext *c) {
 }
 
 static void libovvc_decode_flush(AVCodecContext *c) {
-            av_log(c, AV_LOG_ERROR, "FLUSH\n");
+    struct OVDecContext *dec_ctx = (struct OVDecContext *)c->priv_data;
+    OVVCDec *libovvc_dec = dec_ctx->libovvc_dec;
+    av_log(c, AV_LOG_ERROR, "FLUSH\n");
 
+    OVFrame *ovframe = NULL;
+    int ret;
+
+    do {
+        ret = ovdec_drain_picture(libovvc_dec, &ovframe);
+        #if 0
+        if (ret < 0) {
+            return ret;
+        }
+        #endif
+
+        if (ovframe) {
+            av_log(c, AV_LOG_TRACE, "Flushing pic with POC: %d\n", ovframe->poc);
+            ovframe_unref(&ovframe);
+        }
+    } while (ret > 0);
+
+    libovvc_decode_free(c);
+    #if 0
+    if (ret < 0) {
+        return;
+    }
+    #endif
+
+    libovvc_decode_init(c);
+
+    return;
 }
 
 static int libovvc_update_thread_context(AVCodecContext *dst, const AVCodecContext *src) {
