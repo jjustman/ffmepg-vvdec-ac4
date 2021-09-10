@@ -259,11 +259,7 @@ static int ff_vvc_decode_extradata(const uint8_t *data, int size, OVVCDec *dec,
             ret = ovdec_submit_picture_unit(dec, &ovpu);
 
             av_free(ovpu.nalus);
-#if 0
-            ret = vvc_decode_nal_units(gb.buffer, nalsize, ps, sei, *is_nalff,
-                                       *nal_length_size, err_recognition,
-                                       logctx);
-#endif
+
             if (ret < 0) {
                 av_log(logctx, AV_LOG_ERROR, "Decoding nal unit %d %d from hvcC failed\n",
                        type, i);
@@ -273,8 +269,7 @@ static int ff_vvc_decode_extradata(const uint8_t *data, int size, OVVCDec *dec,
         }
     }
 
-    /* Now store right nal length size, that will be used to parse
-     * all other nals */
+    /* Now store right nal length size, that will be used to parse * all other nals */
     *nal_length_size = nal_len_size;
 
     return ret;
@@ -298,7 +293,8 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
         av_log(c, AV_LOG_ERROR, "Unsupported side data\n");
     }
 
-    ret = ff_h2645_packet_split(&pkt, avpkt->data, avpkt->size, c, dec_ctx->is_nalff, dec_ctx->nal_length_size, AV_CODEC_ID_VVC, 0, 0);
+    ret = ff_h2645_packet_split(&pkt, avpkt->data, avpkt->size, c, dec_ctx->is_nalff,
+                                dec_ctx->nal_length_size, AV_CODEC_ID_VVC, 0, 0);
     if (ret < 0) {
         av_log(c, AV_LOG_ERROR, "Error splitting the input into NAL units.\n");
         return ret;
@@ -322,8 +318,8 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
         c->coded_width   = ovframe->width[0];
         c->coded_height  = ovframe->height[0];
 
-        av_log(NULL, AV_LOG_TRACE, "Received pic with POC: %d\n", ovframe->poc);
         convert_frame(outdata, ovframe);
+        av_log(c, AV_LOG_TRACE, "Received pic with POC: %d\n", ovframe->poc);
 
         *nb_pic_out = 1;
     }
@@ -342,7 +338,8 @@ static int libovvc_decode_init(AVCodecContext *c) {
         av_log(c, AV_LOG_ERROR, "Could not init Open VVC decoder\n");
         return AVERROR_DECODER_NOT_FOUND;
     }
-    dec_ctx->is_nalff = 0;
+
+    dec_ctx->is_nalff        = 0;
     dec_ctx->nal_length_size = 0;
 
     if (c->extradata && c->extradata_size) {
@@ -352,54 +349,39 @@ static int libovvc_decode_init(AVCodecContext *c) {
 
         if (c->extradata_size > 3 && (c->extradata[0] || c->extradata[1] || c->extradata[2] > 1)) {
 
-    OVFrame *ovframe = NULL;
+            OVFrame *ovframe = NULL;
             ret = ff_vvc_decode_extradata(c->extradata, c->extradata_size, libovvc_dec,
                                           &dec_ctx->is_nalff, &dec_ctx->nal_length_size, c);
 
-    #if 0
-    ovdec_receive_picture(libovvc_dec, &ovframe);
-
-    /* FIXME use ret instead of frame */
-    if (ovframe) {
-        c->pix_fmt = AV_PIX_FMT_YUV420P10;
-#if 1
-        c->width   = ovframe->width[0];
-        c->height  = ovframe->height[0];
-        c->coded_width   = ovframe->width[0];
-        c->coded_height  = ovframe->height[0];
-#endif
-
-        ovframe_unref(&ovframe);
-
-    }
-    #elif 0
-
-        c->pix_fmt = AV_PIX_FMT_YUV420P10;
-        c->width   = 1920;
-        c->height  = 1080;
-        c->coded_width   = 1920;
-        c->coded_height  = 1080;
-        c->framerate.num=50;
-        c->framerate.den=1;
-    #endif
             if (ret < 0) {
                 av_log(c, AV_LOG_ERROR, "Error reading parameters sets as extradata.\n");
                 return ret;
             }
+
+            /* Set default parameters it will be overridden as soon
+             * as the decoder got a frame on its output
+             */
+            c->pix_fmt = AV_PIX_FMT_YUV420P10;
+            c->width   = 1920;
+            c->height  = 1080;
+            c->coded_width   = 1920;
+            c->coded_height  = 1080;
+            c->framerate.num = 50;
+            c->framerate.den = 1;
+
         } else {
             av_log(c, AV_LOG_ERROR, "Extra data init\n");
         }
     }
 
-        #if 0
-        c->pix_fmt = AV_PIX_FMT_YUV420P10;
-        c->width   = 3840;
-        c->height  = 2160;
-        c->coded_width   = 3840;
-        c->coded_height  = 2160;
-        c->framerate.num=50;
-        c->framerate.den=1;
-        #endif
+    c->pix_fmt = AV_PIX_FMT_YUV420P10;
+    c->width   = 3840;
+    c->height  = 2160;
+    c->coded_width   = 3840;
+    c->coded_height  = 2160;
+    c->framerate.num=50;
+    c->framerate.den=1;
+
     return 0;
 }
 
