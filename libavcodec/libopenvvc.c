@@ -47,6 +47,7 @@ static int convert_avpkt(OVPictureUnit *ovpu, const H2645Packet *pkt) {
     ovpu->nb_nalus = pkt->nb_nals;
     ovpu->nalus = av_malloc(sizeof(*ovpu->nalus) * ovpu->nb_nalus);
     if (!ovpu->nb_nalus) {
+        av_log(NULL, AV_LOG_ERROR, "No NAL Unit in packet.\n");
         return AVERROR(ENOMEM);
     }
 
@@ -104,9 +105,9 @@ static int ff_vvc_decode_extradata(const uint8_t *data, int size, OVVCDec *dec,
      * is finalized. When finalized, configurationVersion will be 1 and we
      * can recognize hvcC by checking if avctx->extradata[0]==1 or not. */
 
-    av_log(c, AV_LOG_WARNING, "Extra data support is experimental in openVVC.\n
-Informations on pictures dimension are assumed to default parameters.
-It will be set to correct value as soon as a first picture is available on the decoder output.\n");
+    av_log(logctx, AV_LOG_WARNING, "Extra data support is experimental in openVVC.\n"
+    "Informations on pictures dimension are assumed to default parameters.\n"
+    "It will be set to correct value as soon as a first picture is available on the decoder output.\n");
 
     *is_nalff = 1;
 
@@ -231,8 +232,7 @@ It will be set to correct value as soon as a first picture is available on the d
                                        logctx);
 #endif
             if (ret < 0) {
-                av_log(logctx, AV_LOG_ERROR,
-                       "Decoding nal unit %d %d from hvcC failed\n",
+                av_log(logctx, AV_LOG_ERROR, "Decoding nal unit %d %d from hvcC failed\n",
                        type, i);
                 return ret;
             }
@@ -262,7 +262,7 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
     *nb_pic_out = 0;
 
     if (avpkt->side_data_elems) {
-        av_log(NULL, AV_LOG_ERROR, "Unsupported side data\n");
+        av_log(c, AV_LOG_ERROR, "Unsupported side data\n");
     }
 
     ret = ff_h2645_packet_split(&pkt, avpkt->data, avpkt->size, c, dec_ctx->is_nalff, dec_ctx->nal_length_size, AV_CODEC_ID_VVC, 0, 0);
@@ -350,10 +350,9 @@ static int libovvc_decode_init(AVCodecContext *c) {
         c->framerate.den=1;
     #endif
             if (ret < 0) {
-                av_log(c, AV_LOG_ERROR, "Error splitting the input into NAL units.\n");
+                av_log(c, AV_LOG_ERROR, "Error reading parameters sets as extradata.\n");
                 return ret;
             }
-            av_log(c, AV_LOG_ERROR, "Experimental format\n");
         } else {
             av_log(c, AV_LOG_ERROR, "Extra data init\n");
         }
