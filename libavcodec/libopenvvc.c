@@ -40,6 +40,9 @@ struct OVDecContext{
      OVVCDec* libovvc_dec;
      int nal_length_size;
      int is_nalff;
+     int64_t log_level;
+     int64_t nb_entry_th;
+     int64_t nb_frame_th;
 };
 
 static int copy_rpbs_info(OVNALUnit **ovnalu_p, const uint8_t *rbsp_buffer, int raw_size, const int *skipped_bytes_pos, int skipped_bytes) {
@@ -405,7 +408,16 @@ static int libovvc_update_thread_context(AVCodecContext *dst, const AVCodecConte
     return 0;
 }
 
+#define OFFSET(x) offsetof(struct OVDecContext, x)
+#define PAR (AV_OPT_FLAG_DECODING_PARAM | AV_OPT_FLAG_VIDEO_PARAM)
+
 static const AVOption options[] = {
+    { "threads_frame", "Number of threads to be used on frames", OFFSET(nb_frame_th),
+        AV_OPT_TYPE_INT, {.i64 = 1}, 0, 16, PAR },
+    { "threads_tile", "Number of threads to be used on tiles", OFFSET(nb_entry_th),
+        AV_OPT_TYPE_INT, {.i64 = 1}, 0, 16, PAR },
+    { "log_level", "Verbosity of OpenVVC decoder", OFFSET(log_level),
+        AV_OPT_TYPE_INT, {.i64 = 5}, 0, 5, PAR },
     { NULL },
 };
 
