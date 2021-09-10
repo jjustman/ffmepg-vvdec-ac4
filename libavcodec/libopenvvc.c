@@ -358,6 +358,7 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
 
     unref_ovvc_nalus(&ovpu);
 
+    ff_h2645_packet_uninit(&pkt);
     av_free(ovpu.nalus);
     return 0;
 }
