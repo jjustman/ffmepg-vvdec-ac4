@@ -96,18 +96,26 @@ static int convert_avpkt(OVPictureUnit *ovpu, const H2645Packet *pkt) {
          copy_rpbs_info(ovnalu_p, avnalu->rbsp_buffer, avnalu->raw_size, avnalu->skipped_bytes_pos, avnalu->skipped_bytes);
          (*ovnalu_p)->type = avnalu->type;
     }
+
     return 0;
 }
 
-static void dummy_unref(void *opaque, uint8_t *data){
+static int unref_ovvc_nalus(OVPictureUnit *ovpu) {
+    int i;
+    for (i = 0; i < ovpu->nb_nalus; ++i) {
+         OVNALUnit **ovnalu_p = &ovpu->nalus[i];
+         ov_nalu_unref(ovnalu_p);
+    }
+    return 0;
 }
 
-static void ovvc_unref(void *opaque, uint8_t *data) {
+static void ovvc_unref_ovframe(void *opaque, uint8_t *data) {
 
-    ovframe_unref(&data);
+    OVFrame **frame_p = (OVFrame **)&data;
+    ovframe_unref(frame_p);
 }
 
-static void convert_frame(AVFrame *avframe, const OVFrame *ovframe) {
+static void convert_ovframe(AVFrame *avframe, const OVFrame *ovframe) {
     avframe->data[0] = ovframe->data[0];
     avframe->data[1] = ovframe->data[1];
     avframe->data[2] = ovframe->data[2];
@@ -120,16 +128,14 @@ static void convert_frame(AVFrame *avframe, const OVFrame *ovframe) {
     avframe->height = ovframe->height[0];
 
     avframe->buf[0] = av_buffer_create(ovframe, sizeof(ovframe),
-                                       ovvc_unref, NULL, 0);
+                                       ovvc_unref_ovframe, NULL, 0);
 
     avframe->pict_type = AV_PIX_FMT_YUV420P10;
-
 }
 
 static int ff_vvc_decode_extradata(const uint8_t *data, int size, OVVCDec *dec,
                                    int *is_nalff, int *nal_length_size,
-                                   void *logctx)
-{
+                                   void *logctx) {
     int i, j, num_arrays, nal_len_size, b, has_ptl, num_sublayers;
     int ret = 0;
     GetByteContext gb;
@@ -246,21 +252,17 @@ static int ff_vvc_decode_extradata(const uint8_t *data, int size, OVVCDec *dec,
             }
 
             /* FIMXE unrequired malloc */
-            ovpu.nalus = av_mallocz(sizeof(OVNALUnit));
-            OVNALUnit *ovnalu = &ovpu.nalus[0];
-            ovnalu->rbsp_data = gb.buffer;
-            ovnalu->rbsp_size = nalsize;
-            {int k; uint8_t *p_data = gb.buffer;
-                for (k=0; k<nalsize; k++)
-                av_log(logctx, AV_LOG_DEBUG,
-                    "%02x ", p_data[k]);
-            }
+            ovpu.nalus = av_mallocz(sizeof(OVNALUnit*));
 
-            av_log(logctx, AV_LOG_DEBUG,
-                "\n");
+            OVNALUnit **ovnalu_p = &ovpu.nalus[0];
+
+            copy_rpbs_info(ovnalu_p, gb.buffer, nalsize, NULL, 0);
+
+            (*ovnalu_p)->type = type;
 
             ret = ovdec_submit_picture_unit(dec, &ovpu);
 
+            unref_ovvc_nalus(&ovpu);
             av_free(ovpu.nalus);
 
             if (ret < 0) {
@@ -268,6 +270,7 @@ static int ff_vvc_decode_extradata(const uint8_t *data, int size, OVVCDec *dec,
                        type, i);
                 return ret;
             }
+
             bytestream2_skip(&gb, nalsize);
         }
     }
@@ -321,22 +324,37 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
         c->coded_width   = ovframe->width[0];
         c->coded_height  = ovframe->height[0];
 
-        convert_frame(outdata, ovframe);
         av_log(c, AV_LOG_TRACE, "Received pic with POC: %d\n", ovframe->poc);
+
+        convert_ovframe(outdata, ovframe);
 
         *nb_pic_out = 1;
     }
 
+    unref_ovvc_nalus(&ovpu);
+
     av_free(ovpu.nalus);
     return 0;
+}
+
+static void set_libovvc_log_level(int level) {
+    extern ov_log_level;
+    ov_log_level = level;
 }
 
 static int libovvc_decode_init(AVCodecContext *c) {
     struct OVDecContext *dec_ctx = (struct OVDecContext *)c->priv_data;
     OVVCDec **libovvc_dec_p = (OVVCDec**) &dec_ctx->libovvc_dec;
     int ret;
+    int nb_frame_th = dec_ctx->nb_frame_th;
+    int nb_entry_th = dec_ctx->nb_entry_th;
 
-    ret = ovdec_init(libovvc_dec_p);
+    int display_output = 1;
+
+    set_libovvc_log_level(dec_ctx->log_level);
+
+    ret = ovdec_init(libovvc_dec_p, display_output, nb_frame_th, nb_entry_th);
+
     if (ret < 0) {
         av_log(c, AV_LOG_ERROR, "Could not init Open VVC decoder\n");
         return AVERROR_DECODER_NOT_FOUND;
