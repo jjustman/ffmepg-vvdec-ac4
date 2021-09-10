@@ -42,6 +42,42 @@ struct OVDecContext{
      int is_nalff;
 };
 
+static int copy_rpbs_info(OVNALUnit **ovnalu_p, const uint8_t *rbsp_buffer, int raw_size, const int *skipped_bytes_pos, int skipped_bytes) {
+
+    uint8_t *rbsp_cpy = av_malloc(raw_size + 8);
+    OVNALUnit *ovnalu = av_mallocz(sizeof(OVNALUnit));
+    if (!ovnalu) {
+        return AVERROR(ENOMEM);
+    }
+    ov_nalu_init(ovnalu);
+
+    /* TODO check allocs */
+    memcpy(rbsp_cpy, rbsp_buffer, raw_size);
+    rbsp_cpy[raw_size]     = 0;
+    rbsp_cpy[raw_size + 1] = 0;
+    rbsp_cpy[raw_size + 2] = 0;
+    rbsp_cpy[raw_size + 3] = 0;
+    rbsp_cpy[raw_size + 4] = 0;
+    rbsp_cpy[raw_size + 5] = 0;
+    rbsp_cpy[raw_size + 6] = 0;
+    rbsp_cpy[raw_size + 7] = 0;
+
+    ovnalu->rbsp_data = rbsp_cpy;
+    ovnalu->rbsp_size = raw_size;
+
+    if (skipped_bytes) {
+        int *epb_cpy = av_malloc(skipped_bytes * sizeof (*ovnalu->epb_pos));
+        memcpy(epb_cpy, skipped_bytes_pos, skipped_bytes * sizeof (*ovnalu->epb_pos));
+
+        ovnalu->epb_pos = epb_cpy;
+        ovnalu->nb_epb = skipped_bytes;
+    }
+
+    *ovnalu_p = ovnalu;
+
+    return 0;
+}
+
 static int convert_avpkt(OVPictureUnit *ovpu, const H2645Packet *pkt) {
     int i;
     ovpu->nb_nalus = pkt->nb_nals;
@@ -53,12 +89,9 @@ static int convert_avpkt(OVPictureUnit *ovpu, const H2645Packet *pkt) {
 
     for (i = 0; i < ovpu->nb_nalus; ++i) {
          const H2645NAL *avnalu = &pkt->nals[i];
-         OVNALUnit *ovnalu = &ovpu->nalus[i];
-         ovnalu->rbsp_data = avnalu->rbsp_buffer;
-         ovnalu->rbsp_size = avnalu->raw_size;
-         ovnalu->epb_pos   = avnalu->skipped_bytes_pos;
-         ovnalu->nb_epb    = avnalu->skipped_bytes;
-         ovnalu->type = avnalu->type;
+         OVNALUnit **ovnalu_p = &ovpu->nalus[i];
+         copy_rpbs_info(ovnalu_p, avnalu->rbsp_buffer, avnalu->raw_size, avnalu->skipped_bytes_pos, avnalu->skipped_bytes);
+         (*ovnalu_p)->type = avnalu->type;
     }
     return 0;
 }
