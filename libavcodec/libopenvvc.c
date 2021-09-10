@@ -290,6 +290,31 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
     int *nb_pic_out = outdata_size;
     int ret;
 
+    if (!avpkt->size) {
+
+        ret = ovdec_drain_picture(libovvc_dec, &ovframe);
+
+        if (ret < 0) {
+            //return ret;
+        }
+
+        if (ovframe) {
+            c->pix_fmt = AV_PIX_FMT_YUV420P10;
+            c->width   = ovframe->width[0];
+            c->height  = ovframe->height[0];
+            c->coded_width   = ovframe->width[0];
+            c->coded_height  = ovframe->height[0];
+
+            convert_ovframe(outdata, ovframe);
+
+            av_log(NULL, AV_LOG_TRACE, "Draining pic with POC: %d\n", ovframe->poc);
+
+            *outdata_size = 1;
+        }
+
+        return 0;
+    }
+
     OVPictureUnit ovpu;
     H2645Packet pkt = {0};
 
@@ -458,9 +483,9 @@ AVCodec ff_libopenvvc_decoder = {
     .decode                = libovvc_decode_frame,
     .flush                 = libovvc_decode_flush,
     .update_thread_context = ONLY_IF_THREADS_ENABLED(libovvc_update_thread_context),
-    #if 0
-    .capabilities          = AV_CODEC_CAP_DR1 | AV_CODEC_CAP_DELAY,
+    .capabilities          = AV_CODEC_CAP_DELAY,
+#if 0
     .caps_internal         = FF_CODEC_CAP_INIT_THREADSAFE | FF_CODEC_CAP_EXPORTS_CROPPING,
-                             #endif
+#endif
     .profiles              = NULL_IF_CONFIG_SMALL(ff_vvc_profiles),
 };
