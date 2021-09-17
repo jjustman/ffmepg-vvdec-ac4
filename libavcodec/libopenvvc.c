@@ -375,7 +375,7 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
 }
 
 static void set_libovvc_log_level(int level) {
-    extern ov_log_level;
+    extern int ov_log_level;
     ov_log_level = level;
 }
 
