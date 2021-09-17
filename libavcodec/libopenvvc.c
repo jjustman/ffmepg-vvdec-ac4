@@ -467,7 +467,7 @@ static const AVOption options[] = {
     { "threads_tile", "Number of threads to be used on tiles", OFFSET(nb_entry_th),
         AV_OPT_TYPE_INT, {.i64 = 1}, 0, 16, PAR },
     { "log_level", "Verbosity of OpenVVC decoder", OFFSET(log_level),
-        AV_OPT_TYPE_INT, {.i64 = 5}, 0, 5, PAR },
+        AV_OPT_TYPE_INT, {.i64 = 1}, 0, 5, PAR },
     { NULL },
 };
 
