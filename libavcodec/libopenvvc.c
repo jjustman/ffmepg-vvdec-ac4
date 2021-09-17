@@ -404,31 +404,8 @@ static int libovvc_decode_init(AVCodecContext *c) {
                 av_log(c, AV_LOG_ERROR, "Error reading parameters sets as extradata.\n");
                 return ret;
             }
-
-            /* Set default parameters it will be overridden as soon
-             * as the decoder got a frame on its output
-             */
-            c->pix_fmt = AV_PIX_FMT_YUV420P10;
-            c->width   = 1920;
-            c->height  = 1080;
-            c->coded_width   = 1920;
-            c->coded_height  = 1080;
-            c->framerate.num = 50;
-            c->framerate.den = 1;
-
-        } else {
-            av_log(c, AV_LOG_ERROR, "Extra data init\n");
         }
     }
-
-    c->pix_fmt = AV_PIX_FMT_YUV420P10;
-    c->width   = 3840;
-    c->height  = 2160;
-    c->coded_width   = 3840;
-    c->coded_height  = 2160;
-    c->framerate.num=50;
-    c->framerate.den=1;
-
     return 0;
 }
 
