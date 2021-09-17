@@ -402,13 +402,10 @@ static int libovvc_decode_init(AVCodecContext *c) {
 
     if (c->extradata && c->extradata_size) {
         struct OVDecContext *dec_ctx = (struct OVDecContext *)c->priv_data;
-        OVVCDec *libovvc_dec = dec_ctx->libovvc_dec;
-        OVFrame *ovframe = NULL;
 
         if (c->extradata_size > 3 && (c->extradata[0] || c->extradata[1] || c->extradata[2] > 1)) {
 
-            OVFrame *ovframe = NULL;
-            ret = ff_vvc_decode_extradata(c->extradata, c->extradata_size, libovvc_dec,
+            ret = ff_vvc_decode_extradata(c->extradata, c->extradata_size, dec_ctx->libovvc_dec,
                                           &dec_ctx->is_nalff, &dec_ctx->nal_length_size, c);
 
             if (ret < 0) {
