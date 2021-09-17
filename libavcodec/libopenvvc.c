@@ -315,7 +315,7 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
     *nb_pic_out = 0;
 
     if (avpkt->side_data_elems) {
-        av_log(c, AV_LOG_ERROR, "Unsupported side data\n");
+        av_log(c, AV_LOG_WARNING, "Unsupported side data\n");
     }
 
     ret = ff_h2645_packet_split(&pkt, avpkt->data, avpkt->size, c, dec_ctx->is_nalff,
