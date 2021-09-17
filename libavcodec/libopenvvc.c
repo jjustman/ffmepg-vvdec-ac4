@@ -254,7 +254,7 @@ static int ff_vvc_decode_extradata(const uint8_t *data, int size, OVVCDec *dec,
 
             OVNALUnit **ovnalu_p = &ovpu.nalus[0];
 
-            copy_rpbs_info(ovnalu_p, gb.buffer, nalsize, NULL, 0);
+            copy_rpbs_info(ovnalu_p, gb.buffer + 2, nalsize, NULL, 0);
 
             (*ovnalu_p)->type = type;
 
