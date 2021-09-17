@@ -232,15 +232,13 @@ static int ff_vvc_decode_extradata(const uint8_t *data, int size, OVVCDec *dec,
         else
             cnt = 1;
 
-        av_log(logctx, AV_LOG_DEBUG,
-            "nalu_type %d cnt %d\n", type, cnt);
+        av_log(logctx, AV_LOG_DEBUG, "nalu_type %d cnt %d\n", type, cnt);
 
         for (j = 0; j < cnt; j++) {
             // +2 for the nal size field
 
             int nalsize = bytestream2_peek_be16(&gb) + 2;
-            av_log(logctx, AV_LOG_DEBUG,
-               "nalsize %d \n", nalsize);
+            av_log(logctx, AV_LOG_DEBUG, "nalsize %d \n", nalsize);
 
 
             OVPictureUnit ovpu= {0};
@@ -332,7 +330,6 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
     }
 
     convert_avpkt(&ovpu, &pkt);
-
     ret = ovdec_submit_picture_unit(libovvc_dec, &ovpu);
     if (ret < 0) {
         av_free(ovpu.nalus);
@@ -359,7 +356,9 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
     unref_ovvc_nalus(&ovpu);
 
     ff_h2645_packet_uninit(&pkt);
+
     av_free(ovpu.nalus);
+
     return 0;
 }
 
