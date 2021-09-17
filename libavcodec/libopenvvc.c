@@ -43,6 +43,7 @@ struct OVDecContext{
      int64_t log_level;
      int64_t nb_entry_th;
      int64_t nb_frame_th;
+     uint8_t *last_extradata;
 };
 
 static int copy_rpbs_info(OVNALUnit **ovnalu_p, const uint8_t *rbsp_buffer, int raw_size, const int *skipped_bytes_pos, int skipped_bytes) {
@@ -319,10 +320,11 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
     }
 
     if (c->extradata_size && c->extradata) {
-        av_log(c, AV_LOG_TRACE, "Ignored extra data\n");
         struct OVDecContext *dec_ctx = (struct OVDecContext *)c->priv_data;
+        uint8_t process_extrada = c->extradata != dec_ctx->last_extradata;
 
-        if (c->extradata_size > 3 && (c->extradata[0] || c->extradata[1] || c->extradata[2] > 1)) {
+        if (process_extrada && c->extradata_size > 3 &&
+            (c->extradata[0] || c->extradata[1] || c->extradata[2] > 1)) {
 
             ret = ff_vvc_decode_extradata(c->extradata, c->extradata_size, dec_ctx->libovvc_dec,
                                           &dec_ctx->is_nalff, &dec_ctx->nal_length_size, c);
@@ -331,6 +333,7 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
                 av_log(c, AV_LOG_ERROR, "Error reading parameters sets as extradata.\n");
                 return ret;
             }
+            dec_ctx->last_extradata = c->extradata;
         }
     }
 
@@ -404,6 +407,7 @@ static int libovvc_decode_init(AVCodecContext *c) {
         struct OVDecContext *dec_ctx = (struct OVDecContext *)c->priv_data;
 
         if (c->extradata_size > 3 && (c->extradata[0] || c->extradata[1] || c->extradata[2] > 1)) {
+            dec_ctx->last_extradata = c->extradata;
 
             ret = ff_vvc_decode_extradata(c->extradata, c->extradata_size, dec_ctx->libovvc_dec,
                                           &dec_ctx->is_nalff, &dec_ctx->nal_length_size, c);
