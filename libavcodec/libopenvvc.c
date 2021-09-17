@@ -318,6 +318,22 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
         av_log(c, AV_LOG_WARNING, "Unsupported side data\n");
     }
 
+    if (c->extradata_size && c->extradata) {
+        av_log(c, AV_LOG_TRACE, "Ignored extra data\n");
+        struct OVDecContext *dec_ctx = (struct OVDecContext *)c->priv_data;
+
+        if (c->extradata_size > 3 && (c->extradata[0] || c->extradata[1] || c->extradata[2] > 1)) {
+
+            ret = ff_vvc_decode_extradata(c->extradata, c->extradata_size, dec_ctx->libovvc_dec,
+                                          &dec_ctx->is_nalff, &dec_ctx->nal_length_size, c);
+
+            if (ret < 0) {
+                av_log(c, AV_LOG_ERROR, "Error reading parameters sets as extradata.\n");
+                return ret;
+            }
+        }
+    }
+
     ret = ff_h2645_packet_split(&pkt, avpkt->data, avpkt->size, c, dec_ctx->is_nalff,
                                 dec_ctx->nal_length_size, AV_CODEC_ID_VVC, 0, 0);
     if (ret < 0) {
