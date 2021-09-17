@@ -147,13 +147,9 @@ static int ff_vvc_decode_extradata(const uint8_t *data, int size, OVVCDec *dec,
      * is finalized. When finalized, configurationVersion will be 1 and we
      * can recognize hvcC by checking if avctx->extradata[0]==1 or not. */
 
-    av_log(logctx, AV_LOG_WARNING, "Extra data support is experimental in openVVC.\n"
-    "Informations on pictures dimension are assumed to default parameters.\n"
-    "It will be set to correct value as soon as a first picture is available on the decoder output.\n");
+    av_log(logctx, AV_LOG_WARNING, "Extra data support is experimental in openVVC.\n");
 
     *is_nalff = 1;
-
-
 
     b = bytestream2_get_byte(&gb);
 
