@@ -46,6 +46,26 @@ struct OVDecContext{
      uint8_t *last_extradata;
 };
 
+#define OFFSET(x) offsetof(struct OVDecContext, x)
+#define PAR (AV_OPT_FLAG_DECODING_PARAM | AV_OPT_FLAG_VIDEO_PARAM)
+
+static const AVOption options[] = {
+    { "threads_frame", "Number of threads to be used on frames", OFFSET(nb_frame_th),
+        AV_OPT_TYPE_INT, {.i64 = 0}, 0, 16, PAR },
+    { "threads_tile", "Number of threads to be used on tiles", OFFSET(nb_entry_th),
+        AV_OPT_TYPE_INT, {.i64 = 1}, 0, 16, PAR },
+    { "log_level", "Verbosity of OpenVVC decoder", OFFSET(log_level),
+        AV_OPT_TYPE_INT, {.i64 = 1}, 0, 5, PAR },
+    { NULL },
+};
+
+static const AVClass libovvc_decoder_class = {
+    .class_name = "Open VVC decoder",
+    .item_name  = av_default_item_name,
+    .option     = options,
+    .version    = LIBAVUTIL_VERSION_INT,
+};
+
 static int copy_rpbs_info(OVNALUnit **ovnalu_p, const uint8_t *rbsp_buffer, int raw_size, const int *skipped_bytes_pos, int skipped_bytes) {
 
     uint8_t *rbsp_cpy = av_malloc(raw_size + 8);
@@ -302,7 +322,7 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
 
             convert_ovframe(outdata, ovframe);
 
-            av_log(NULL, AV_LOG_TRACE, "Draining pic with POC: %d\n", ovframe->poc);
+            av_log(c, AV_LOG_TRACE, "Draining pic with POC: %d\n", ovframe->poc);
 
             *outdata_size = 1;
         }
@@ -377,9 +397,19 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
     return 0;
 }
 
+static int ov_log_level;
+
 static void set_libovvc_log_level(int level) {
-    extern int ov_log_level;
     ov_log_level = level;
+}
+
+static void libovvc_log(void* ctx, int log_level, const char* fmt, va_list vl)
+{
+     static const uint8_t log_level_lut[6] = {AV_LOG_ERROR, AV_LOG_WARNING, AV_LOG_INFO, AV_LOG_TRACE, AV_LOG_DEBUG, AV_LOG_VERBOSE};
+     AVClass *avcl = &libovvc_decoder_class;
+     if (log_level < ov_log_level) {
+         av_vlog(&avcl, log_level_lut[log_level], fmt, vl);
+     }
 }
 
 static int libovvc_decode_init(AVCodecContext *c) {
@@ -392,6 +422,8 @@ static int libovvc_decode_init(AVCodecContext *c) {
     int display_output = 1;
 
     set_libovvc_log_level(dec_ctx->log_level);
+
+    ovdec_set_log_callback(libovvc_log);
 
     ret = ovdec_init(libovvc_dec_p, display_output, nb_frame_th, nb_entry_th);
 
@@ -470,26 +502,6 @@ static int libovvc_update_thread_context(AVCodecContext *dst, const AVCodecConte
     return 0;
 }
 
-#define OFFSET(x) offsetof(struct OVDecContext, x)
-#define PAR (AV_OPT_FLAG_DECODING_PARAM | AV_OPT_FLAG_VIDEO_PARAM)
-
-static const AVOption options[] = {
-    { "threads_frame", "Number of threads to be used on frames", OFFSET(nb_frame_th),
-        AV_OPT_TYPE_INT, {.i64 = 1}, 0, 16, PAR },
-    { "threads_tile", "Number of threads to be used on tiles", OFFSET(nb_entry_th),
-        AV_OPT_TYPE_INT, {.i64 = 1}, 0, 16, PAR },
-    { "log_level", "Verbosity of OpenVVC decoder", OFFSET(log_level),
-        AV_OPT_TYPE_INT, {.i64 = 1}, 0, 5, PAR },
-    { NULL },
-};
-
-static const AVClass libovvc_decoder_class = {
-    .class_name = "Open VVC decoder",
-    .item_name  = av_default_item_name,
-    .option     = options,
-    .version    = LIBAVUTIL_VERSION_INT,
-};
-
 AVCodec ff_libopenvvc_decoder = {
     .name                  = "ovvc",
     .long_name             = NULL_IF_CONFIG_SMALL("Open VVC(Versatile Video Coding)"),
@@ -501,8 +513,8 @@ AVCodec ff_libopenvvc_decoder = {
     .close                 = libovvc_decode_free,
     .decode                = libovvc_decode_frame,
     .flush                 = libovvc_decode_flush,
-    .update_thread_context = ONLY_IF_THREADS_ENABLED(libovvc_update_thread_context),
-    .capabilities          = AV_CODEC_CAP_DELAY,
+    .capabilities          = AV_CODEC_CAP_DELAY | AV_CODEC_CAP_OTHER_THREADS,
+    .wrapper_name          = "OpenVVC",
 #if 0
     .caps_internal         = FF_CODEC_CAP_INIT_THREADSAFE | FF_CODEC_CAP_EXPORTS_CROPPING,
 #endif
