@@ -55,12 +55,15 @@ static int vvc_extradata_to_annexb(AVBSFContext *ctx)
     length_size = (( temp & 6) >> 1) + 1;
     ptl_present = temp & 1;
     if (ptl_present) {
-		int num_bytes_constraint_info;
-		int general_profile_idc;
-		int general_tier_flag;
-		int ptl_num_sub_profiles;
-		int temp3, temp4;
-		int temp2 = bytestream2_get_be16(&gb);
+        int num_bytes_constraint_info;
+        int general_profile_idc;
+        int general_tier_flag;
+        int general_level_idc;
+        int ptl_frame_only_constraint_flag;
+        int ptl_multi_layer_enabled_flag;
+        int ptl_num_sub_profiles;
+        int temp3, temp4, temp5;
+        int temp2 = bytestream2_get_be16(&gb);
         int ols_idx  = (temp2 >> 7) & 0x1ff;
         int num_sublayers  = (temp2 >> 4) & 0x7;
         int constant_frame_rate = (temp2 >> 2) & 0x3;
@@ -74,24 +77,37 @@ static int vvc_extradata_to_annexb(AVBSFContext *ctx)
         temp4 = bytestream2_get_byte(&gb);
         general_profile_idc = (temp4 >> 1) & 0x7f;
         general_tier_flag = (temp4) & 1;
+        general_level_idc = bytestream2_get_byte(&gb);
         av_log(ctx, AV_LOG_DEBUG,
             "general_profile_idc %d, num_sublayers %d num_bytes_constraint_info %d\n", general_profile_idc, num_sublayers, num_bytes_constraint_info);
-        for (i = 0; i < num_bytes_constraint_info; i++)
-            // unsigned int(1) ptl_frame_only_constraint_flag;
-            // unsigned int(1) ptl_multi_layer_enabled_flag;
+
+        temp5 = bytestream2_get_byte(&gb);
+        ptl_frame_only_constraint_flag = (temp5 >> 7) & 0x1;
+        ptl_multi_layer_enabled_flag   = (temp5 >> 6) & 0x1;
+        for (i = 0; i < num_bytes_constraint_info-1; i++) {
             // unsigned int(8*num_bytes_constraint_info - 2) general_constraint_info;
             bytestream2_get_byte(&gb);
-        /*for (i=num_sublayers - 2; i >= 0; i--)
-            unsigned int(1) ptl_sublayer_level_present_flag[i];
-        for (j=num_sublayers; j<=8 && num_sublayers > 1; j++)
-            bit(1) ptl_reserved_zero_bit = 0;
-        */
-        bytestream2_get_byte(&gb);
-        /*for (i=num_sublayers-2; i >= 0; i--)
-            if (ptl_sublayer_level_present_flag[i])
-                unsigned int(8) sublayer_level_idc[i]; */
-        ptl_num_sub_profiles = bytestream2_get_byte(&gb); // unsigned int(8) sublayer_level_idc;
+        }
 
+        if( num_sublayers > 1 )
+        {
+            int temp6 = bytestream2_get_byte(&gb);
+            uint8_t ptl_sublayer_level_present_flag[8] = {0};
+            uint8_t sublayer_level_idc[8] = {0};
+            for (i=num_sublayers - 2; i >= 0; i--){
+                ptl_sublayer_level_present_flag[i] = (temp6 >> (7 - (num_sublayers - 2 - i))) & 0x01;
+            }
+            // for (j=num_sublayers; j<=8 && num_sublayers > 1; j++)
+            //     bit(1) ptl_reserved_zero_bit = 0;
+            for (i=num_sublayers-2; i >= 0; i--)
+            {
+                if (ptl_sublayer_level_present_flag[i]) {
+                    sublayer_level_idc[i] = bytestream2_get_byte(&gb);
+                }
+            }
+        }
+
+        ptl_num_sub_profiles = bytestream2_get_byte(&gb);
         for (j=0; j < ptl_num_sub_profiles; j++) {
             // unsigned int(32) general_sub_profile_idc[j];
             bytestream2_get_be16(&gb);
