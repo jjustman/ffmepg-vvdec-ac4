@@ -342,7 +342,7 @@ static int get_pu_info(PuInfo *info, const CodedBitstreamH266Context *h266,
                 info->ph = &info->slice->header.sh_picture_header;
             if (!info->ph) {
                 av_log(logctx, AV_LOG_ERROR,
-                       "can't find picture header in picutre unit.\n");
+                       "can't find picture header in picture unit.\n");
                 ret = AVERROR_INVALIDDATA;
                 goto error;
             }
@@ -351,7 +351,7 @@ static int get_pu_info(PuInfo *info, const CodedBitstreamH266Context *h266,
     }
     if (!info->slice) {
         av_log(logctx, AV_LOG_ERROR,
-            "can't find slice in picutre unit.\n");
+            "can't find slice in picture unit.\n");
         ret = AVERROR_INVALIDDATA;
         goto error;
     }
