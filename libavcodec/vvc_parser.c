@@ -109,7 +109,7 @@ static int find_frame_end(AVCodecParserContext *s, const uint8_t *buf,
         nut = (pc->state64 >> (8 + 3)) & 0x1F;
         // 7.4.2.4.3 and 7.4.2.4.4
         if ((nut >= VVC_OPI_NUT && nut <= VVC_PREFIX_APS_NUT && nut != VVC_PH_NUT) ||
-            nut == VVC_AUD_NUT || nut == VVC_PREFIX_SEI_NUT || nut == VVC_RSV_NVCL_26 ||
+            nut == VVC_AUD_NUT || (nut == VVC_PREFIX_SEI_NUT && !pc->frame_start_found) || nut == VVC_RSV_NVCL_26 ||
             nut == VVC_UNSPEC_28 || nut == VVC_UNSPEC_29) {
             if (pc->frame_start_found) {
                 pc->frame_start_found = 0;
