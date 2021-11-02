@@ -363,6 +363,9 @@ static int get_dvb_stream_type(AVFormatContext *s, AVStream *st)
     case AV_CODEC_ID_HEVC:
         stream_type = STREAM_TYPE_VIDEO_HEVC;
         break;
+    case AV_CODEC_ID_VVC:
+        stream_type = STREAM_TYPE_VIDEO_VVC;
+        break;
     case AV_CODEC_ID_CAVS:
         stream_type = STREAM_TYPE_VIDEO_CAVS;
         break;
@@ -446,7 +449,11 @@ static int get_m2ts_stream_type(AVFormatContext *s, AVStream *st)
     int stream_type;
     MpegTSWriteStream *ts_st = st->priv_data;
 
-    switch (st->codecpar->codec_id) {
+         av_log(s, AV_LOG_ERROR,
+                    "mra Stream %d, codec %s, is muxed as a private data stream.\n", st->index,
+                    avcodec_get_name(st->codecpar->codec_id));
+
+   switch (st->codecpar->codec_id) {
     case AV_CODEC_ID_MPEG2VIDEO:
         stream_type = STREAM_TYPE_VIDEO_MPEG2;
         break;
@@ -460,6 +467,8 @@ static int get_m2ts_stream_type(AVFormatContext *s, AVStream *st)
         stream_type = STREAM_TYPE_VIDEO_HEVC;
         break;
     case AV_CODEC_ID_VVC:
+         av_log(s, AV_LOG_ERROR,
+                    "MPEGTS VVC %s.\n", avcodec_get_name(st->codecpar->codec_id));
         stream_type = STREAM_TYPE_VIDEO_VVC;
         break;
     case AV_CODEC_ID_PCM_BLURAY:
