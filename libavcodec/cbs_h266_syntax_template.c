@@ -244,8 +244,11 @@ static int FUNC(vui_parameters)(CodedBitstreamContext *ctx, RWContext *rw,
     flag(vui_colour_description_present_flag);
     if (current->vui_colour_description_present_flag) {
         ub(8, vui_colour_primaries);
+        av_log(ctx->log_ctx, AV_LOG_DEBUG, "vui_colour_primaries == %d \n", current->vui_colour_primaries);
         ub(8, vui_transfer_characteristics);
+        av_log(ctx->log_ctx, AV_LOG_DEBUG, "vui_transfer_characteristics == %d \n", current->vui_transfer_characteristics);
         ub(8, vui_matrix_coeffs);
+        av_log(ctx->log_ctx, AV_LOG_DEBUG, "vui_matrix_coeffs == %d \n", current->vui_matrix_coeffs);
         flag(vui_full_range_flag);
     } else {
         infer(vui_colour_primaries, 2);
