@@ -319,6 +319,11 @@ static av_cold int ff_vvdec_decode_frame( AVCodecContext *avctx, void *data, int
         pcAVFrame->width  = frame->width;
         pcAVFrame->height = frame->height;
         pcAVFrame->format = avctx->pix_fmt;
+
+        pcAVFrame->color_trc = avctx->color_trc;
+        pcAVFrame->color_primaries = avctx->color_primaries;
+        pcAVFrame->colorspace = avctx->colorspace;
+
         pcAVFrame->interlaced_frame = 0;
         pcAVFrame->top_field_first  = 0;
         if (frame->ctsValid)
