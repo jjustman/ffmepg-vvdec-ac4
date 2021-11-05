@@ -148,6 +148,10 @@ static void convert_ovframe(AVFrame *avframe, const OVFrame *ovframe) {
     avframe->width  = ovframe->width[0];
     avframe->height = ovframe->height[0];
 
+    avframe->color_trc       = ovframe->frame_info.color_desc.transfer_characteristics;
+    avframe->color_primaries = ovframe->frame_info.color_desc.colour_primaries;
+    avframe->colorspace      = ovframe->frame_info.color_desc.matrix_coeffs;
+
     avframe->buf[0] = av_buffer_create(ovframe, sizeof(ovframe),
                                        ovvc_unref_ovframe, NULL, 0);
 
