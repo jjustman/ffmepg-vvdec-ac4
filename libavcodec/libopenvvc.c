@@ -155,7 +155,7 @@ static void convert_ovframe(AVFrame *avframe, const OVFrame *ovframe) {
     avframe->buf[0] = av_buffer_create(ovframe, sizeof(ovframe),
                                        ovvc_unref_ovframe, NULL, 0);
 
-    avframe->pict_type = AV_PIX_FMT_YUV420P10;
+    avframe->pict_type = ovframe->frame_info.chroma_format == OV_YUV_420_P8 ? AV_PIX_FMT_YUV420P : AV_PIX_FMT_YUV420P10;
 }
 
 static int ff_vvc_decode_extradata(const uint8_t *data, int size, OVVCDec *dec,
@@ -318,7 +318,7 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
         }
 
         if (ovframe) {
-            c->pix_fmt = AV_PIX_FMT_YUV420P10;
+            c->pix_fmt = ovframe->frame_info.chroma_format == OV_YUV_420_P8 ? AV_PIX_FMT_YUV420P : AV_PIX_FMT_YUV420P10;
             c->width   = ovframe->width[0];
             c->height  = ovframe->height[0];
             c->coded_width   = ovframe->width[0];
@@ -379,7 +379,7 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
 
     /* FIXME use ret instead of frame */
     if (ovframe) {
-        c->pix_fmt = AV_PIX_FMT_YUV420P10;
+        c->pix_fmt = ovframe->frame_info.chroma_format == OV_YUV_420_P8 ? AV_PIX_FMT_YUV420P : AV_PIX_FMT_YUV420P10;
         c->width   = ovframe->width[0];
         c->height  = ovframe->height[0];
         c->coded_width   = ovframe->width[0];
