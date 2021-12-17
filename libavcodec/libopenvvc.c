@@ -145,8 +145,8 @@ static void convert_ovframe(AVFrame *avframe, const OVFrame *ovframe) {
     avframe->linesize[1] = ovframe->linesize[1];
     avframe->linesize[2] = ovframe->linesize[2];
 
-    avframe->width  = ovframe->width[0];
-    avframe->height = ovframe->height[0];
+    avframe->width  = ovframe->width;
+    avframe->height = ovframe->height;
 
     avframe->color_trc       = ovframe->frame_info.color_desc.transfer_characteristics;
     avframe->color_primaries = ovframe->frame_info.color_desc.colour_primaries;
@@ -319,10 +319,10 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
 
         if (ovframe) {
             c->pix_fmt = ovframe->frame_info.chroma_format == OV_YUV_420_P8 ? AV_PIX_FMT_YUV420P : AV_PIX_FMT_YUV420P10;
-            c->width   = ovframe->width[0];
-            c->height  = ovframe->height[0];
-            c->coded_width   = ovframe->width[0];
-            c->coded_height  = ovframe->height[0];
+            c->width   = ovframe->width;
+            c->height  = ovframe->height;
+            c->coded_width   = ovframe->width;
+            c->coded_height  = ovframe->height;
 
             convert_ovframe(outdata, ovframe);
 
@@ -380,10 +380,10 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
     /* FIXME use ret instead of frame */
     if (ovframe) {
         c->pix_fmt = ovframe->frame_info.chroma_format == OV_YUV_420_P8 ? AV_PIX_FMT_YUV420P : AV_PIX_FMT_YUV420P10;
-        c->width   = ovframe->width[0];
-        c->height  = ovframe->height[0];
-        c->coded_width   = ovframe->width[0];
-        c->coded_height  = ovframe->height[0];
+        c->width   = ovframe->width;
+        c->height  = ovframe->height;
+        c->coded_width   = ovframe->width;
+        c->coded_height  = ovframe->height;
 
         av_log(c, AV_LOG_TRACE, "Received pic with POC: %d\n", ovframe->poc);
 
@@ -429,7 +429,15 @@ static int libovvc_decode_init(AVCodecContext *c) {
 
     ovdec_set_log_callback(libovvc_log);
 
-    ret = ovdec_init(libovvc_dec_p, display_output, nb_frame_th, nb_entry_th);
+    ret = ovdec_init(libovvc_dec_p);
+    if (ret < 0) {
+        av_log(c, AV_LOG_ERROR, "Could not init Open VVC decoder\n");
+        return AVERROR_DECODER_NOT_FOUND;
+    }
+
+    ovdec_config_threads(*libovvc_dec_p, nb_entry_th, nb_frame_th);
+
+    ret = ovdec_start(*libovvc_dec_p);
 
     if (ret < 0) {
         av_log(c, AV_LOG_ERROR, "Could not init Open VVC decoder\n");
