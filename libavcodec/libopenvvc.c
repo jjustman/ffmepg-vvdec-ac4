@@ -279,6 +279,8 @@ static int ff_vvc_decode_extradata(const uint8_t *data, int size, OVVCDec *dec,
 
             (*ovnalu_p)->type = type;
 
+            ovpu.nb_nalus = 0;
+
             ret = ovdec_submit_picture_unit(dec, &ovpu);
 
             unref_ovvc_nalus(&ovpu);
