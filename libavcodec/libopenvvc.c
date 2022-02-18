@@ -185,10 +185,6 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
 
         ret = ovdec_drain_picture(libovvc_dec, &ovframe);
 
-        if (ret < 0) {
-            //return ret;
-        }
-
         if (ovframe) {
             av_log(c, AV_LOG_TRACE, "Draining pic with POC: %d\n", ovframe->poc);
 
@@ -315,11 +311,6 @@ static av_cold void libovvc_decode_flush(AVCodecContext *c) {
 
     do {
         ret = ovdec_drain_picture(libovvc_dec, &ovframe);
-        #if 0
-        if (ret < 0) {
-            return ret;
-        }
-        #endif
 
         if (ovframe) {
             av_log(c, AV_LOG_TRACE, "Flushing pic with POC: %d\n", ovframe->poc);
