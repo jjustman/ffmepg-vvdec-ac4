@@ -155,7 +155,16 @@ static void convert_ovframe(AVFrame *avframe, const OVFrame *ovframe) {
     avframe->pict_type = ovframe->frame_info.chroma_format == OV_YUV_420_P8 ? AV_PIX_FMT_YUV420P : AV_PIX_FMT_YUV420P10;
 
 
+}
 
+static void
+export_frame_properties(const AVFrame *const avframe, AVCodecContext *c)
+{
+    c->pix_fmt = avframe->pict_type;
+    c->width   = avframe->width;
+    c->height  = avframe->height;
+    c->coded_width   = avframe->width;
+    c->coded_height  = avframe->height;
 }
 
 static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_size, AVPacket *avpkt) {
@@ -176,15 +185,11 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
         }
 
         if (ovframe) {
-            c->pix_fmt = ovframe->frame_info.chroma_format == OV_YUV_420_P8 ? AV_PIX_FMT_YUV420P : AV_PIX_FMT_YUV420P10;
-            c->width   = ovframe->width;
-            c->height  = ovframe->height;
-            c->coded_width   = ovframe->width;
-            c->coded_height  = ovframe->height;
+            av_log(c, AV_LOG_TRACE, "Draining pic with POC: %d\n", ovframe->poc);
 
             convert_ovframe(outdata, ovframe);
 
-            av_log(c, AV_LOG_TRACE, "Draining pic with POC: %d\n", ovframe->poc);
+            export_frame_properties(outdata, c);
 
             *outdata_size = 1;
         }
@@ -217,17 +222,13 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
 
     ovdec_receive_picture(libovvc_dec, &ovframe);
 
-    /* FIXME use ret instead of frame */
     if (ovframe) {
-        c->pix_fmt = ovframe->frame_info.chroma_format == OV_YUV_420_P8 ? AV_PIX_FMT_YUV420P : AV_PIX_FMT_YUV420P10;
-        c->width   = ovframe->width;
-        c->height  = ovframe->height;
-        c->coded_width   = ovframe->width;
-        c->coded_height  = ovframe->height;
 
         av_log(c, AV_LOG_TRACE, "Received pic with POC: %d\n", ovframe->poc);
 
         convert_ovframe(outdata, ovframe);
+
+        export_frame_properties(outdata, c);
 
         *nb_pic_out = 1;
     }
