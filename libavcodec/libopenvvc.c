@@ -261,7 +261,6 @@ static av_cold int libovvc_decode_init(AVCodecContext *c) {
     int nb_frame_th = dec_ctx->nb_frame_th;
     int nb_entry_th = dec_ctx->nb_entry_th;
 
-    int display_output = 1;
 
     set_libovvc_log_level(dec_ctx->log_level);
 
