@@ -119,12 +119,15 @@ static int convert_avpkt(OVPictureUnit *ovpu, const H2645Packet *pkt) {
     return 0;
 }
 
-static int unref_ovvc_nalus(OVPictureUnit *ovpu) {
+static int unref_pu_ovnalus(OVPictureUnit *ovpu) {
     int i;
     for (i = 0; i < ovpu->nb_nalus; ++i) {
          OVNALUnit **ovnalu_p = &ovpu->nalus[i];
          ov_nalu_unref(ovnalu_p);
     }
+
+    av_freep(&ovpu->nalus);
+
     return 0;
 }
 
@@ -215,7 +218,8 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
     convert_avpkt(&ovpu, &pkt);
     ret = ovdec_submit_picture_unit(libovvc_dec, &ovpu);
     if (ret < 0) {
-        av_free(ovpu.nalus);
+        unref_pu_ovnalus(&ovpu);
+
         return AVERROR_INVALIDDATA;
     }
 
@@ -232,11 +236,9 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
         *nb_pic_out = 1;
     }
 
-    unref_ovvc_nalus(&ovpu);
+    unref_pu_ovnalus(&ovpu);
 
     ff_h2645_packet_uninit(&pkt);
-
-    av_free(ovpu.nalus);
 
     return 0;
 }
