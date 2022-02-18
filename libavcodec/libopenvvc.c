@@ -41,7 +41,6 @@ struct OVDecContext{
      int64_t log_level;
      int64_t nb_entry_th;
      int64_t nb_frame_th;
-     uint8_t *last_extradata;
 };
 
 #define OFFSET(x) offsetof(struct OVDecContext, x)
