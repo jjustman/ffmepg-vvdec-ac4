@@ -323,6 +323,7 @@ static av_cold void libovvc_decode_flush(AVCodecContext *c) {
         }
     } while (ret > 0);
 
+    /* Draining in Open VVC forces us to close and reopen the decoder */
     libovvc_decode_free(c);
     #if 0
     if (ret < 0) {
