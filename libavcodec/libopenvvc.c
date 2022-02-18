@@ -253,7 +253,7 @@ static void set_libovvc_log_level(int level) {
 static void libovvc_log(void* ctx, int log_level, const char* fmt, va_list vl)
 {
      static const uint8_t log_level_lut[6] = {AV_LOG_ERROR, AV_LOG_WARNING, AV_LOG_INFO, AV_LOG_TRACE, AV_LOG_DEBUG, AV_LOG_VERBOSE};
-     AVClass *avcl = &libovvc_decoder_class;
+     const AVClass *avcl = &libovvc_decoder_class;
      if (log_level < ov_log_level) {
          av_vlog(&avcl, log_level_lut[log_level], fmt, vl);
      }
@@ -345,7 +345,7 @@ static int libovvc_update_thread_context(AVCodecContext *dst, const AVCodecConte
     return 0;
 }
 
-AVCodec ff_libopenvvc_decoder = {
+const AVCodec ff_libopenvvc_decoder = {
     .name                  = "ovvc",
     .long_name             = NULL_IF_CONFIG_SMALL("Open VVC(Versatile Video Coding)"),
     .type                  = AVMEDIA_TYPE_VIDEO,
