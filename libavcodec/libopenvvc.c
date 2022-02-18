@@ -276,16 +276,18 @@ static av_cold int libovvc_decode_init(AVCodecContext *c) {
 
     ret = ovdec_start(*libovvc_dec_p);
 
+
     if (ret < 0) {
+
+        ovdec_close(dec_ctx->libovvc_dec);
+
         av_log(c, AV_LOG_ERROR, "Could not init Open VVC decoder\n");
+
         return AVERROR_DECODER_NOT_FOUND;
     }
 
     dec_ctx->is_nalff        = 0;
     dec_ctx->nal_length_size = 0;
-
-
-
 
     return 0;
 }
