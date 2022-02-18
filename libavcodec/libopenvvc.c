@@ -112,7 +112,7 @@ static int convert_avpkt(OVPictureUnit *ovpu, const H2645Packet *pkt) {
     for (i = 0; i < ovpu->nb_nalus; ++i) {
          const H2645NAL *avnalu = &pkt->nals[i];
          OVNALUnit **ovnalu_p = &ovpu->nalus[i];
-         copy_rpbs_info(ovnalu_p, avnalu->rbsp_buffer, avnalu->raw_size, avnalu->skipped_bytes_pos, avnalu->skipped_bytes);
+         copy_rpbs_info(ovnalu_p, avnalu->data, avnalu->raw_size, avnalu->skipped_bytes_pos, avnalu->skipped_bytes);
          (*ovnalu_p)->type = avnalu->type;
     }
 
