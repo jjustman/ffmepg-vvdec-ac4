@@ -28,12 +28,10 @@
 #include "libavutil/attributes.h"
 #include "libavutil/opt.h"
 
-#include "bytestream.h"
-
-#include "profiles.h"
 #include "avcodec.h"
-#include "vvc.h"
+#include "profiles.h"
 #include "h2645_parse.h"
+#include "vvc.h"
 
 struct OVDecContext{
      AVClass *c;
