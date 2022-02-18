@@ -338,11 +338,6 @@ static av_cold void libovvc_decode_flush(AVCodecContext *c) {
     return;
 }
 
-static int libovvc_update_thread_context(AVCodecContext *dst, const AVCodecContext *src) {
-
-    return 0;
-}
-
 const AVCodec ff_libopenvvc_decoder = {
     .name                  = "ovvc",
     .long_name             = NULL_IF_CONFIG_SMALL("Open VVC(Versatile Video Coding)"),
