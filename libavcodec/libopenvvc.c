@@ -169,10 +169,12 @@ export_frame_properties(const AVFrame *const avframe, AVCodecContext *c)
 
 static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_size, AVPacket *avpkt) {
 
-
     struct OVDecContext *dec_ctx = (struct OVDecContext *)c->priv_data;
     OVVCDec *libovvc_dec = dec_ctx->libovvc_dec;
     OVFrame *ovframe = NULL;
+    OVPictureUnit ovpu;
+    H2645Packet pkt = {0};
+
     int *nb_pic_out = outdata_size;
     int ret;
 
@@ -196,9 +198,6 @@ static int libovvc_decode_frame(AVCodecContext *c, void *outdata, int *outdata_s
 
         return 0;
     }
-
-    OVPictureUnit ovpu;
-    H2645Packet pkt = {0};
 
     *nb_pic_out = 0;
 
