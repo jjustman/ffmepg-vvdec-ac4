@@ -261,29 +261,30 @@ static av_cold int libovvc_decode_init(AVCodecContext *c) {
     int nb_frame_th = dec_ctx->nb_frame_th;
     int nb_entry_th = dec_ctx->nb_entry_th;
 
+    if (!dec_ctx->libovvc_dec) {
 
-    set_libovvc_log_level(dec_ctx->log_level);
+        set_libovvc_log_level(dec_ctx->log_level);
 
-    ovdec_set_log_callback(libovvc_log);
+        ovdec_set_log_callback(libovvc_log);
 
-    ret = ovdec_init(libovvc_dec_p);
-    if (ret < 0) {
-        av_log(c, AV_LOG_ERROR, "Could not init Open VVC decoder\n");
-        return AVERROR_DECODER_NOT_FOUND;
-    }
+        ret = ovdec_init(libovvc_dec_p);
+        if (ret < 0) {
+            av_log(c, AV_LOG_ERROR, "Could not init Open VVC decoder\n");
+            return AVERROR_DECODER_NOT_FOUND;
+        }
 
-    ovdec_config_threads(*libovvc_dec_p, nb_entry_th, nb_frame_th);
+        ovdec_config_threads(*libovvc_dec_p, nb_entry_th, nb_frame_th);
 
-    ret = ovdec_start(*libovvc_dec_p);
+        ret = ovdec_start(*libovvc_dec_p);
 
+        if (ret < 0) {
 
-    if (ret < 0) {
+            ovdec_close(dec_ctx->libovvc_dec);
 
-        ovdec_close(dec_ctx->libovvc_dec);
+            av_log(c, AV_LOG_ERROR, "Could not init Open VVC decoder\n");
 
-        av_log(c, AV_LOG_ERROR, "Could not init Open VVC decoder\n");
-
-        return AVERROR_DECODER_NOT_FOUND;
+            return AVERROR_DECODER_NOT_FOUND;
+        }
     }
 
     dec_ctx->is_nalff        = 0;
@@ -325,13 +326,11 @@ static av_cold void libovvc_decode_flush(AVCodecContext *c) {
 
     /* Draining in Open VVC forces us to close and reopen the decoder */
     libovvc_decode_free(c);
-    #if 0
-    if (ret < 0) {
-        return;
-    }
-    #endif
 
-    libovvc_decode_init(c);
+    ret = libovvc_decode_init(c);
+    if (ret < 0) {
+        dec_ctx->libovvc_dec = NULL;
+    }
 
     return;
 }
