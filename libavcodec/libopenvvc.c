@@ -128,7 +128,7 @@ static int unref_ovvc_nalus(OVPictureUnit *ovpu) {
     return 0;
 }
 
-static void ovvc_unref_ovframe(void *opaque, uint8_t *data) {
+static void unref_ovframe(void *opaque, uint8_t *data) {
 
     OVFrame **frame_p = (OVFrame **)&data;
     ovframe_unref(frame_p);
@@ -150,11 +150,10 @@ static void convert_ovframe(AVFrame *avframe, const OVFrame *ovframe) {
     avframe->color_primaries = ovframe->frame_info.color_desc.colour_primaries;
     avframe->colorspace      = ovframe->frame_info.color_desc.matrix_coeffs;
 
-    avframe->buf[0] = av_buffer_create(ovframe, sizeof(ovframe),
-                                       ovvc_unref_ovframe, NULL, 0);
+    avframe->pict_type = ovframe->frame_info.chroma_format == OV_YUV_420_P8 ? AV_PIX_FMT_YUV420P
+                                                                            : AV_PIX_FMT_YUV420P10;
 
-    avframe->pict_type = ovframe->frame_info.chroma_format == OV_YUV_420_P8 ? AV_PIX_FMT_YUV420P : AV_PIX_FMT_YUV420P10;
-
+    avframe->buf[0] = av_buffer_create((uint8_t*)ovframe, sizeof(ovframe), unref_ovframe, NULL, 0);
 
 }
 
