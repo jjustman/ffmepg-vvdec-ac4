@@ -47,9 +47,9 @@ struct OVDecContext{
 #define PAR (AV_OPT_FLAG_DECODING_PARAM | AV_OPT_FLAG_VIDEO_PARAM)
 
 static const AVOption options[] = {
-    { "threads_frame", "Number of threads to be used on frames", OFFSET(nb_frame_th),
+    { "threads_frame", "Maximum number of frames being decoded in parallel", OFFSET(nb_frame_th),
         AV_OPT_TYPE_INT, {.i64 = 0}, 0, 16, PAR },
-    { "threads_tile", "Number of threads to be used on tiles", OFFSET(nb_entry_th),
+    { "threads_tile", "Number of threads to be used on entries", OFFSET(nb_entry_th),
         AV_OPT_TYPE_INT, {.i64 = 8}, 0, 16, PAR },
     { "log_level", "Verbosity of OpenVVC decoder", OFFSET(log_level),
         AV_OPT_TYPE_INT, {.i64 = 1}, 0, 5, PAR },
